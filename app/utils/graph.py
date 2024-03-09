@@ -5,24 +5,24 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
-def top_stack_bar(stacks):
+def top_stack_bar(stacks, top_n=20):
     techs = [t.strip().capitalize() for t in sum(stacks, [])]
     group_techs = Counter(techs)
     tech_df = pd.DataFrame(
         list(group_techs.items()), columns=["Technology", "Count"]
     ).sort_values(by="Count", ascending=False)
-    tech_df = tech_df.iloc[:20]
+    tech_df = tech_df.iloc[:top_n]
     fig = px.bar(tech_df, x="Technology", y="Count")
-    fig.update_layout(title_text="Top 20 Technologies", width=800)
+    fig.update_layout(title_text=f"Top {top_n} Technologies", width=800)
     return fig
 
 
-def job_graph_pie(jobs, other_ratio: float=1.0):
+def job_graph_pie(jobs, other_ratio: float = 1.0):
     group_jobs = Counter(jobs)
     job_df = pd.DataFrame(
         list(group_jobs.items()), columns=["Job", "Count"]
     ).sort_values(by="Count", ascending=False)
-    
+
     # 1% 미만 처리
     total_count = job_df["Count"].sum()
     job_df["Percentage"] = round(job_df["Count"] / total_count * 100, 3)
@@ -33,7 +33,9 @@ def job_graph_pie(jobs, other_ratio: float=1.0):
         others_row = pd.DataFrame([{"Job": "기타", "Count": others_sum}])
         job_df = pd.concat([job_df, others_row], ignore_index=True)
 
-    fig = px.pie(job_df, names="Job", values="Count", title="Tech Job Ratios", width=800)
+    fig = px.pie(
+        job_df, names="Job", values="Count", title="Tech Job Ratios", width=800
+    )
 
     return fig
 
@@ -54,8 +56,8 @@ def sunburst_chart(df):
     )
     fig.update_layout(
         title_text="Sunburst Chart of Jobs and Tech Stacks",
-        width=800,
-        height=800,
+        width=650,
+        height=650,
     )
     return fig
 
@@ -68,7 +70,7 @@ def sankey_chart(df, column_for_jobs="job_name", column_for_techs="tech_stacks")
     job_labels = df[column_for_jobs].unique().tolist()
     tech_labels = df[column_for_techs].unique().tolist()
     labels = job_labels + tech_labels
-    
+
     print(f"[debug] {job_labels=}")
     print(f"[debug] {tech_labels=}")
 

@@ -1,8 +1,7 @@
-import pandas as pd
 import streamlit as st
 
-from utils.graph import job_graph_pie, sankey_chart, sunburst_chart, top_stack_bar
 from utils.query import get_data
+from views import default_view, search_view, vector_search_view
 
 st.set_page_config(
     page_title="JobTrend",
@@ -14,11 +13,11 @@ st.set_page_config(
         "About": "# JobTrend",
     },
 )
-st.session_state.open_chart = True
 
 
 def main():
     st.title("JOB TREND for EVERYBODY")
+    view_function = default_view
 
     with st.spinner("Get data..."):
         df = get_data()
@@ -29,84 +28,60 @@ def main():
 
     # 사이드바
     with st.sidebar:
-        col1, col2 = st.columns([6, 3])
         st.title(":technologist: Search the JobTrend")
-        # with col1:
-        # with col2:
-            # st.write("")
-            # search_button = st.button(":mag_right: Search!", key="search_button")
+        tab1, tab2 = st.tabs([":mag: Search", ":sparkles: AI Search"])
 
+    # 탭1: 일반 검색
+    with tab1:
         job_name_selected = st.multiselect(
             "Select job name", ["All"] + job_names, "All"
         )
         tech_stacks_selected = st.multiselect(
             "Select tech stacks", ["All"] + tech_stacks, "All"
         )
-        # st.button("button", type='primary', use_container_width=True)
         deadline_date = st.date_input("Select a deadline")
-        
-        check_ongoing = st.checkbox('Exclude ongoing')
-        chart_switch = st.checkbox("More chart")
-        search_button = st.button(":mag_right: Search!", key="search_button", use_container_width=True)
+        check_ongoing = st.checkbox("Exclude ongoing")
+
+        if st.button(":mag: Search!", key="search_button", use_container_width=True):
+            view_function = search_view  # search_view로 뷰 변경
         print(f"{job_name_selected=}, {tech_stacks_selected=}, {deadline_date=}")
 
+    # 탭 2: 벡터 검색
+    with tab2:
+        if st.button(
+            ":sparkles: Search!", key="vector_search_button", use_container_width=True
+        ):
+            view_function = vector_search_view
+
     # 메인화면
-    st.subheader('Overview', divider='grey')
+    st.subheader("Overview", divider="grey")
     m1, m2, m3, m4, m5 = st.columns(5)
     m2.metric("**Count of Jobs**", len(job_names))
     m3.metric("**Count of Tech Stacks**", len(tech_stacks))
     m4.metric("**Total Companies**", len(companies))
 
-    c1, c2 = st.columns(2)
-    with c1:
-        st.plotly_chart(top_stack_bar(df["tech_stacks"]), use_container_width=True)
-    with c2:
-        st.plotly_chart(job_graph_pie(df["job_name"], 0.5), use_container_width=True)
+    # view 분기
+    with st.spinner("Loading..."):
+        if view_function == search_view:
+            search_view(
+                df,
+                job_name_selected,
+                tech_stacks_selected,
+                deadline_date,
+                check_ongoing,
+            )
+        elif view_function == vector_search_view:
+            vector_search_view()
+        else:
+            default_view(df)
 
-    if search_button:
-        st.subheader("🗃 Result", divider="grey")
-        # 필터링 로직
-        filtered_df = df.copy()
-
-        if job_name_selected != (["All"] or []):
-            filtered_df = filtered_df[
-                filtered_df["job_name"].apply(
-                    lambda x: any(tech in x for tech in job_name_selected)
-                )
-            ]
-        if tech_stacks_selected != (["All"] or []):
-            filtered_df = filtered_df[
-                filtered_df["tech_stacks"].apply(
-                    lambda x: any(tech in x for tech in tech_stacks_selected)
-                )
-            ]
-        if deadline_date:
-            deadline_filter_date = pd.Timestamp(deadline_date)
-            if check_ongoing:
-                filtered_df = filtered_df[
-                    (pd.to_datetime(filtered_df["deadline"]) <= deadline_filter_date)
-                    & pd.notnull(filtered_df["deadline"])
-                ]
-            else:
-                filtered_df = filtered_df[
-                    (pd.to_datetime(filtered_df["deadline"]) <= deadline_filter_date)
-                    | pd.isna(filtered_df["deadline"])
-                ]
-
-        st.dataframe(
-            data=filtered_df, column_config={"url": st.column_config.LinkColumn()},
-            use_container_width=True
-        )
-
-        if chart_switch:
-            st.subheader(":bar_chart: More Charts...", divider="grey")
-            with st.spinner("Loading..."):
-                with st.expander("**Sunburst chart**"):
-                    st.plotly_chart(
-                        sunburst_chart(filtered_df), use_container_width=True
-                    )
-                with st.expander("**Sankey chart**"):
-                    st.plotly_chart(sankey_chart(filtered_df), use_container_width=True)
+    # default view가 아닐 때 홈버튼 생성
+    if view_function in [vector_search_view, search_view]:
+        st.markdown("")
+        _, center, _ = st.columns(3)
+        with center:
+            if st.button(":house: Home", type="primary", use_container_width=True):
+                view_function = default_view
 
 
 if __name__ == "__main__":
