@@ -4,9 +4,8 @@ import streamlit as st
 from utils.graph import job_graph_pie, sunburst_chart, top_stack_bar
 
 
-def default_view(df):
-    st.plotly_chart(sunburst_chart(df), use_container_width=True)
-
+def show_default_chart(df):
+    """Top n개의 bar chart와 직종의 비율을 pie chart로 나타내는 함수"""
     # Chart
     c1, c2 = st.columns(2)
     with c1:
@@ -15,6 +14,12 @@ def default_view(df):
         )
     with c2:
         st.plotly_chart(job_graph_pie(df["job_name"], 0.5), use_container_width=True)
+
+
+def default_view(df):
+    st.plotly_chart(sunburst_chart(df), use_container_width=True)
+
+    show_default_chart(df)
 
 
 def search_view(
@@ -47,6 +52,9 @@ def search_view(
                 (pd.to_datetime(filtered_df["deadline"]) <= deadline_filter_date)
                 | pd.isna(filtered_df["deadline"])
             ]
+
+    with st.expander(":bar_chart: Chart", expanded=True):
+        show_default_chart(filtered_df)
 
     if not tech_stacks_selected:
         st.warning("테크스택을 선택해주세요.")
