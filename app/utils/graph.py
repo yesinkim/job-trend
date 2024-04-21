@@ -3,6 +3,7 @@ from collections import Counter
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import streamlit as st
 
 
 def top_stack_bar(stacks, top_n=20):
@@ -16,7 +17,7 @@ def top_stack_bar(stacks, top_n=20):
     fig.update_layout(title_text=f"Top {top_n} Technologies", width=800)
     return fig
 
-
+@st.cache_data
 def job_graph_pie(jobs, other_ratio: float = 1.0):
     group_jobs = Counter(jobs)
     job_df = pd.DataFrame(
@@ -39,7 +40,7 @@ def job_graph_pie(jobs, other_ratio: float = 1.0):
 
     return fig
 
-
+@st.cache_data
 def sunburst_chart(df):
     df = df.explode("tech_stacks")
     sunburst_data = (

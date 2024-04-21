@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 from google.cloud import bigquery
 from google.oauth2 import service_account
+import google.generativeai as genai
 
 # Construct a BigQuery client object.
 credentials = service_account.Credentials.from_service_account_info(
@@ -76,3 +77,10 @@ def get_data(limit: int=None) -> pd.DataFrame:
     result['tech_stacks'] = result['tech_list'].apply(lambda x: [i.strip().capitalize() for i in x])
     result.drop(columns=['tech_list'], inplace=True)
     return result
+
+
+@st.cache_resource
+def load_model():
+    genai.configure(api_key=st.secrets["langchain"]["GOOGLE_APK_KEY"])
+    model = genai.GenerativeModel("gemini-pro")
+    return model

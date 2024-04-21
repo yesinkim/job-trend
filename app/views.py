@@ -71,5 +71,20 @@ def search_view(
         )
 
 
-def vector_search_view():
-    pass
+def side_vector_search(model):
+    print(st.session_state["view_function"])
+    messages = st.container(height=350)
+
+    if "chat_session" not in st.session_state:
+        st.session_state["chat_session"] = model.start_chat(history=[])
+
+    for content in st.session_state.chat_session.history:
+        with messages.chat_message("ai" if content.role == "model" else "user"):
+            st.markdown(content.parts[0].text)
+
+    if prompt := st.chat_input("메시지를 입력하세요."):
+        with messages.chat_message("user"):
+            st.markdown(prompt)
+        with messages.chat_message("ai"):
+            response = st.session_state.chat_session.send_message(prompt)
+            st.markdown(response.text)

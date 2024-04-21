@@ -1,7 +1,7 @@
 import streamlit as st
 
-from utils.query import get_data
-from views import default_view, search_view, vector_search_view
+from utils.query import get_data, load_model
+from views import default_view, search_view, side_vector_search
 
 st.set_page_config(
     page_title="JobTrend",
@@ -17,7 +17,8 @@ st.set_page_config(
 
 def main():
     st.title("JOB TREND for EVERYBODY")
-    view_function = default_view
+    if not st.session_state.get("view_function"):
+        st.session_state["view_function"] = default_view
 
     with st.spinner("Get data..."):
         df = get_data()
@@ -43,15 +44,17 @@ def main():
         check_ongoing = st.checkbox("Exclude ongoing")
 
         if st.button(":mag: Search!", key="search_button", use_container_width=True):
-            view_function = search_view  # search_view로 뷰 변경
+            st.session_state["view_function"] = search_view  # search_view로 뷰 변경
         print(f"{job_name_selected=}, {tech_stacks_selected=}, {deadline_date=}")
 
     # 탭 2: 벡터 검색
     with tab2:
+        model = load_model()
+        side_vector_search(model)
         if st.button(
-            ":sparkles: Search!", key="vector_search_button", use_container_width=True
+            ":sparkles: Clear History!", key="vector_search_button", use_container_width=True
         ):
-            view_function = vector_search_view
+            st.session_state["chat_session"] = model.start_chat(history=[])
 
     # 메인화면
     st.subheader("Overview", divider="grey")
@@ -62,7 +65,7 @@ def main():
 
     # view 분기
     with st.spinner("Loading..."):
-        if view_function == search_view:
+        if st.session_state["view_function"] == search_view:
             search_view(
                 df,
                 job_name_selected,
@@ -70,18 +73,17 @@ def main():
                 deadline_date,
                 check_ongoing,
             )
-        elif view_function == vector_search_view:
-            vector_search_view()
         else:
             default_view(df)
 
     # default view가 아닐 때 홈버튼 생성
-    if view_function in [vector_search_view, search_view]:
+    if st.session_state["view_function"] in [search_view]:
         st.markdown("")
+
         _, center, _ = st.columns(3)
         with center:
             if st.button(":house: Home", type="primary", use_container_width=True):
-                view_function = default_view
+                st.session_state["view_function"] = default_view
 
 
 if __name__ == "__main__":
